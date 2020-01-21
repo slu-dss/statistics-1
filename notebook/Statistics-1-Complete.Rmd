@@ -1,0 +1,367 @@
+---
+title: "SLU DSS Spring 2020"
+subtitle: "Statistics in R: Session #1"
+author: "Cort W. Rudolph"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: ioslides_presentation
+widescreen: true
+smaller: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  tidy = FALSE,
+  message = FALSE,
+  warning = FALSE
+  )
+options(scipen = 99, digits = 3)
+```
+
+# Statistics in R|Session #1
+
+## Welcome!
+
+The four sessions this semester will focus on applications of common statistical procedures using `R`:
+
+Pre-requisites...
+
+- Some background using `R`, `RStudio`, and `RMarkdown`, and knowledge of the `tidy` philosophy of data analysis (esp. `tidyverse` tools like `dplyr` for data wrangling and `ggplot2` for plotting)  
+- Working knowledge of univariate statistics, with a basic understanding of descriptive statistics, correlation, regression, and fundamentals of frequentist inference (i.e., NHST)
+
+## Welcome!
+
+Four sessions this semester:
+
+- Session #1: Exploratory Data Analysis
+- Session #2: Modeling Continuous Predictors
+- Session #3: Modeling Categorical Predictors
+- Session #4: Modern Approaches to Inference: The Bootstrap
+
+Borrowing heavily from:  
+
+[openintro.org](https://www.openintro.org)  
+[moderndive.com](https://moderndive.com)
+
+
+## Welcome!
+
+**About me:**
+
+Associate professor of Industrial & Organizational Psychology. BA from DePaul University; MA and Ph.D. from Wayne State University. 
+
+My research focuses on a variety of issues related to the aging workforce, including applications of lifespan development theories, wellbeing and work-longevity, and ageism/generationalism. 
+
+Interests in statistical and methodological advancements, particularly in meta-analysis, and emerging topics in open science practices. 
+
+Associate editor of the Journal of Vocational Behavior; My book, “Work Across the Lifespan” is available from Academic Press.
+
+My website has more about me: [http://cortrudolph.com](http://cortrudolph.com)
+
+## Needed packages
+- Let's now load all the packages needed for this week. 
+- `ipak` codeblock available in the `RMarkdown` file:
+
+<!-- To install & load the required packages for this lecture, run this codeblock -->
+```{r echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+# ipak <- function(pkg){
+#     new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+#     if (length(new.pkg)) 
+#         install.packages(new.pkg, dependencies = TRUE)
+#     sapply(pkg, require, character.only = TRUE)
+# }
+# 
+# # usage
+# packages <- c("tidyverse", 
+#               "skimr",
+#               "gridExtra",
+#               "kableExtra",
+#               "psych")
+# ipak(packages)
+```
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(skimr)
+library(psych)
+library(gridExtra)
+library(kableExtra)
+```
+
+# Data for Examples|`evals`
+
+## Professor rating data
+- We will use the `evals` dataset for the lecture demonstrations presented here.
+- Data collected at the University of Texas in Austin
+- Research question: "What factors can explain differences in instructor's teaching evaluation scores?" 
+- Data on teaching evaluations (and related variables) from $n = 463$ instructors.
+
+## Professor rating data
+- Let's load the data, `select` only a subset of the variables:
+
+```{r eval=TRUE}
+load(url("http://www.openintro.org/stat/data/evals.RData"))
+evals <- evals %>%
+  select(score, bty_avg, age)
+```
+
+
+# Exploratory data analysis 
+
+## Exploratory data analysis 
+- Before doing any kind of modeling or analysis, it is important to first perform an *exploratory data analysis*, or EDA
+- Exploratory data analysis can, for example, give you a sense of the distribution of the data, whether there are outliers and/or missing values, and can inform how to build your model. 
+- There are many approaches to exploratory data analysis, here are three:
+
+    1. Looking at the raw values, in a spreadsheet for example
+    1. Computing summary statistics likes means, medians, and standard deviations
+    1. Creating data visualizations
+
+## Exploratory data analysis 
+- You can look at the raw values by running `View(evals)` in the console in `RStudio` to pop-up the spreadsheet-like viewer. 
+- Here, however, we present only a snapshot of 5 randomly chosen rows:
+
+## Exploratory data analysis 
+```{r, echo=FALSE}
+evals %>%
+  sample_n(5) %>%
+  knitr::kable(
+    digits = 3,
+    caption = "Random Sample of 5 Instructors",
+    booktabs = TRUE) %>% 
+  kable_styling(full_width = F)
+```
+
+## Exploratory data analysis 
+- A full description of each of these variables can be found at [openintro.org](https://www.openintro.org/stat/data/?data=evals), let's summarize what each of these variables represent
+
+    1. `score`: Numerical variable of the average teaching score based on students' evaluations between 1 and 5. 
+    1. `bty_avg`: Numerical variable of average "beauty" rating based on a panel of 6 students' scores between 1 and 10. 
+    1. `age`: A numerical variable of chronological age.
+
+## Exploratory data analysis 
+- Another way to look at the raw values is using the `tibble::glimpse()` function, which gives us a slightly different view of the data. 
+- We see `Observations: 463`, indicating that there are 463 observations in `evals`, each corresponding to a particular instructor at UT Austin. 
+- In other words, each row in the data frame `evals` corresponds to one of 463 instructors. 
+
+```{r}
+glimpse(evals)
+```
+
+## Exploratory data analysis 
+- Since `score` and `bty_avg` are numerical, we can compute summary statistics about them such as the mean, median, and standard deviation. 
+- Let’s take `evals` and select only the two variables of interest for now. 
+- However, let's instead pipe this into the `skim()` function from the `skimr` package. 
+- This function quickly "skims" the data
+
+## Exploratory data analysis 
+```{r}
+evals %>% 
+  select(score, bty_avg) %>% 
+  skim()
+```
+
+## Exploratory data analysis 
+- In this case, `skim()` returns:
+    - `missing`: the number of missing values
+    - `complete`: the number of non-missing or complete values
+    - `n`: the total number of values
+    - `mean`: the average
+    - `sd`: the standard deviation
+    
+## Exploratory data analysis 
+
+- `p0`: the 0^th^ percentile: the value at which 0% of observations are smaller than it. This is also known as the *minimum*
+- `p25`: the 25^th^ percentile: the value at which 25% of observations are smaller than it. This is also known as the *1^st^quartile*
+- `p50`: the 50^th^ percentile: the value at which 50% of observations are smaller than it. This is also know as the *2^nd^* quartile and more commonly the *median*
+- `p75`: the 75^th^ percentile: the value at which 75% of observations are smaller than it. This is also known as the *3^rd^ quartile*
+- `p100`: the 100^th^ percentile: the value at which 100% of observations are smaller than it. This is also known as the *maximum*
+
+- A quick snapshot of the `hist`ogram
+
+## Exploratory data analysis 
+- From `skim()`, we get a sense of how the values in both variables are distributed. 
+- e.g., The mean teaching score was 4.17 out of 5 whereas the mean beauty score was 4.42 out of 10. 
+- e.g., The middle 50% of teaching scores were between 3.80 and 4.6 (the first and third quartiles)
+
+## Exploratory data analysis 
+- The output provided by `skim()` is not very `tidy`, which makes it of limited use
+- Another way to extract descriptive statistics is by using `psych::describe()` 
+
+```{r}
+evals %>%
+  select(score, bty_avg) %>%
+  psych::describe() %>%
+  select(n, mean, sd, median, min, max, range, skew, kurtosis) %>%
+  kable() %>%
+  kable_styling(full_width = FALSE)
+```
+
+
+## Exploratory data analysis 
+- The `skim()` and `psych::describe()` functions only return what are called *univariate* summaries, i.e. summaries about single variables. 
+- If we are interested in considering the *relationship* between two numerical variables, it would be nice to have a summary statistic that simultaneously considers both variables. 
+- The *correlation coefficient* is a *bivariate* summary statistic that fits this bill. 
+
+## Exploratory data analysis 
+- A correlation coefficient can range between -1 and 1, and summarizes the *strength of the linear relationship between two numerical variables*:
+
+    - -1 indicates a perfect *negative relationship*: as the value of one variable goes up, the value of the other variable tends to go down.
+    - 0 indicates no relationship: the values of both variables go up/down independently of each other.
+    - +1 indicates a perfect *positive relationship*: as the value of one variable goes up, the value of the other variable tends to go up as well.
+
+## Exploratory data analysis 
+- The correlation coefficient is computed using the `cor()` function.  
+
+```{r}
+evals %>%
+  select(bty_avg, score) %>%
+  cor() %>%
+  kable() %>%
+  kable_styling(full_width = FALSE)
+```
+
+## Exploratory data analysis 
+- Here, the correlation coefficient of `r cor(x = evals$bty_avg, y = evals$score) %>% round(3)` indicates that the relationship between teaching evaluation score and beauty average is "weakly positive"
+
+## Exploratory data analysis 
+- Let's now proceed by visualizing these data. 
+- Since both the `score` and `bty_avg` variables are numerical, a scatterplot is an appropriate graph to visualize this data. 
+- Let's do this using `geom_jitter()` to account for overplotting.
+
+```{r, eval = FALSE, warning=FALSE, fig.cap="Instructor Evaluation Scores at UT Austin"}
+ggplot(evals, aes(x = bty_avg, y = score)) +
+       geom_jitter() +
+       labs(x = "Beauty Score", y = "Teaching Score", 
+       title = "Relationship of teaching and beauty scores")
+```
+
+## Exploratory data analysis 
+```{r, echo = FALSE, warning=FALSE, fig.cap="Instructor Evaluation Scores at UT Austin"}
+ggplot(evals, aes(x = bty_avg, y = score)) +
+       geom_jitter() +
+       labs(x = "Beauty Score", y = "Teaching Score", 
+       title = "Relationship of teaching and beauty scores")
+``` 
+
+## Exploratory data analysis 
+- Jittering adds a little random "noise" to each of the points to break up these ties between overlapping points: just enough so you can distinguish them, but not so much that the plot is overly altered. 
+
+```{r numxplot2-a, echo=FALSE, warning=FALSE, fig.cap="Comparing Regular and Jittered Scatterplots."}
+box <- data_frame(x=c(7.6, 8, 8, 7.6, 7.6), y=c(4.75, 4.75, 5.1, 5.1, 4.75))
+
+p1 <- ggplot(evals, aes(x = bty_avg, y = score)) +
+  geom_point() +
+  labs(x = "Beauty Score", y = "Teaching Score", 
+       title = "Regular Scatterplot") +
+  geom_path(data = box, aes(x=x, y=y), col = "orange", size = 1)
+
+p2 <- ggplot(evals, aes(x = bty_avg, y = score)) +
+  geom_jitter() +
+  labs(x = "Beauty Score", y = "Teaching Score", 
+       title = "Jittered Scatterplot") +
+  geom_path(data = box, aes(x=x, y=y), col = "orange", size = 1)
+
+grid.arrange(p1, p2, ncol=2)
+```
+
+## Exploratory data analysis 
+- Observe the following:  
+
+    1. Most "beauty" scores lie between 2 and 8.
+    1. Most teaching scores lie between 3 and 5.
+    
+- Recall our earlier computation of the correlation coefficient between these variables.
+- Looking at the figure, it is not immediately apparent that these two variables are positively related. 
+- This is to be expected given the positive, but rather weak (i.e., close to 0), correlation coefficient of `r cor(evals$score, evals$bty_avg) %>% round(3)`.
+
+## Exploratory data analysis 
+- Going back to this scatterplot, let's improve on it by adding a "regression line." 
+- This is done by adding a new layer to the `ggplot` code that created the original figure: `+ geom_smooth(method = "lm", se = FALSE)`.
+- A regression line is a "best fitting" line in that of all possible lines you could draw on this plot; it is "best" in terms of  the "least squares" criteria.
+
+```{r, eval=FALSE, warning=FALSE, fig.cap="Regression Line"}
+ggplot(evals, aes(x = bty_avg, y = score)) +
+       geom_jitter() +
+       labs(x = "Beauty Score", y = "Teaching Score", 
+                title = "Relationship of teaching and beauty scores") +  
+       geom_smooth(method = "lm", se = FALSE)
+```
+
+## Exploratory data analysis 
+```{r, echo=FALSE, warning=FALSE, fig.cap="Regression Line"}
+ggplot(evals, aes(x = bty_avg, y = score)) +
+       geom_jitter() +
+       labs(x = "Beauty Score", y = "Teaching Score", 
+                title = "Relationship of teaching and beauty scores") +  
+       geom_smooth(method = "lm", se = FALSE)
+```
+
+## Exploratory data analysis 
+- Here, the regression line is a nice visual summary of the relationship between these two numerical variables.
+- The positive slope of the blue line is consistent with our observed correlation coefficient of `r cor(evals$score, evals$bty_avg) %>% round(3)` suggesting that there is a positive relationship between `score` and `bty_avg`. 
+- While the correlation coefficient is not equal to the slope of this line, they always have the same sign: positive or negative. 
+
+
+
+
+
+
+
+
+
+
+# Your Turn!
+
+## CDC Data
+The Behavioral Risk Factor Surveillance System (BRFSS) is an annual telephone survey of 350,000 people in the United States conducted by the CDC
+
+Here, we will focus on a random sample of 20,000 people from the BRFSS survey conducted in 2000. While there are over 200 variables in this data set, for now, we will work with a small subset (i.e., just respondents height & weight):
+
+First, we load the data:
+```{r}
+source("http://www.openintro.org/stat/data/cdc.R")
+```
+
+Then, select a random sample of $n = 100$ respondents height & weight
+```{r}
+cdc_subset<-cdc %>%
+  sample_n(100) %>%
+  select(height, weight)
+```
+
+
+## View
+```{r}
+cdc_subset %>%
+  sample_n(2) %>%
+  knitr::kable(
+    digits = 3,
+    caption = "Random Sample of 2 Respondents",
+    booktabs = TRUE) %>% 
+  kable_styling(full_width = F)
+```
+
+## Summarize: Univariate Descriptives
+
+```{r}
+cdc_subset %>% 
+  skim()
+```
+
+## Summarize: Bivariate Descriptives
+
+```{r}
+cdc_subset %>% 
+  cor()
+```
+
+## Visualize
+
+```{r}
+ggplot(cdc_subset, aes(x = height, y = weight)) +
+       geom_jitter() +
+       labs(x = "Height", y = "Weight", 
+                title = "Relationship of height and weight") +  
+       geom_smooth(method = "lm", se = FALSE)
+```
+
